@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  cache:
+    image: redis:7
+    container_name: haystack_cache
+    networks: [cache-net]
+    ports: ["6379:6379"]
+    volumes:
+      - cache-data:/data
+
+  directory-service:
+    build: ./directory-service
+    container_name: directory-service
+    env_file: .env
+    networks: [dir-net, ws-net]
+    ports: ["8001:8001"]
+
+  store-service:
+    build: ./store-service
+    container_name: store-service
+    env_file: .env
+    networks: [store-net, ws-net]
+    ports: ["8002:8002"]
+    volumes:
+      - ./store-service/data:/app/data
+    depends_on:
+    - cache
+
+  replication-manager:
+    build: ./replication-manager
+    container_name: replication-manager
+    env_file: .env
+    networks:
+      - rm-net
+      - ws-net
+      - cache-net   # REQUIRED
+    ports: ["8003:8003"]
+
+  webserver:
+    build: ./webserver
+    container_name: webserver
+    env_file: .env
+    networks:
+      - ws-net
+      - dir-net
+      - store-net
+      - cache-net
+      - rm-net
+    ports: ["8000:8000"]
+
+networks:
+  dir-net: {}
+  ws-net: {}
+  rm-net: {}
+  store-net: {}
+  cache-net: {}
+
+volumes:
+  cache-data: {}

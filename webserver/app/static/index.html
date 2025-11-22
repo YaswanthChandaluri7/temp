@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Haystack Web Client</title>
+    <style>
+        body { font-family: Arial; margin: 30px; }
+        .photo { margin-bottom: 15px; }
+        button { margin-left: 10px; }
+        img { max-width: 150px; display: block; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Haystack Photo Manager</h1>
+
+    <h2>Upload Photo</h2>
+    <input type="file" id="photoInput">
+    <button onclick="uploadPhoto()">Upload</button>
+
+    <h2>Photos</h2>
+    <div id="photosList"></div>
+
+    <script>
+        const apiBase = "";
+
+        function uploadPhoto() {
+            const file = document.getElementById('photoInput').files[0];
+            if (!file) return alert("Select a photo");
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const base64 = reader.result.split(",")[1];
+                const size = file.size;
+
+                const res = await fetch(`${apiBase}/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: base64, photo_size: size })
+                });
+                const j = await res.json();
+                addPhotoToList(j.photo_id);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addPhotoToList(photoId) {
+            const container = document.getElementById('photosList');
+            const div = document.createElement('div');
+            div.className = 'photo';
+            div.id = `photo-${photoId}`;
+            div.innerHTML = `
+                <strong>ID: ${photoId}</strong>
+                <button onclick="fetchPhoto('${photoId}')">Fetch</button>
+                <button onclick="deletePhoto('${photoId}')">Delete</button>
+                <div class="photoContent" id="content-${photoId}"></div>
+            `;
+            container.appendChild(div);
+        }
+
+        async function fetchPhoto(photoId) {
+            const res = await fetch(`${apiBase}/photo/${photoId}`);
+            const contentDiv = document.getElementById(`content-${photoId}`);
+            if (res.status === 200) {
+                const j = await res.json();
+                contentDiv.innerHTML = `<img src="data:image/png;base64,${j.data}">`;
+            } else {
+                contentDiv.innerHTML = `<span style="color:red">Photo not found</span>`;
+            }
+        }
+
+        async function deletePhoto(photoId) {
+            const res = await fetch(`${apiBase}/photo/${photoId}`, { method: 'DELETE' });
+            if (res.status === 200) {
+                document.getElementById(`photo-${photoId}`).remove();
+            } else {
+                alert("Failed to delete");
+            }
+        }
+    </script>
+</body>
+</html>

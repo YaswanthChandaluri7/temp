@@ -1,0 +1,11 @@
+redis port occupied
+
+    sudo systemctl stop redis
+    sudo systemctl disable redis
+
+
+docker ContainerConfig meta data corrupted
+
+    docker-compose down --remove-orphans --volumes
+    docker system prune -f
+    docker volume prune -f
